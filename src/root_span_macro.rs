@@ -94,8 +94,6 @@ macro_rules! root_span {
                         client_ip = %$request.connection_info().realip_remote_addr().unwrap_or(""),
                         request_id = %request_id,
                         status = $crate::root_span_macro::private::tracing::field::Empty,
-                        duration = $crate::root_span_macro::private::tracing::field::Empty,
-                        unit = $crate::root_span_macro::private::tracing::field::Empty,
                         exception.message = $crate::root_span_macro::private::tracing::field::Empty,
                         exception.details = $crate::root_span_macro::private::tracing::field::Empty,
                         $($field)*
