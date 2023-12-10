@@ -151,7 +151,10 @@ where
         let root_span_wrapper = RootSpan::new(root_span.clone());
         req.extensions_mut().insert(root_span_wrapper);
 
-        let fut = root_span.in_scope(|| self.service.call(req));
+        let fut = root_span.in_scope(|| {
+            tracing::info!("Started HTTP request processing");
+            self.service.call(req)
+        });
 
         TracingResponse {
             fut,
@@ -196,6 +199,8 @@ where
             Poll::Pending => Poll::Pending,
             Poll::Ready(outcome) => {
                 RootSpanType::on_request_end(Span::current(), &outcome);
+
+                tracing::info!("Finished HTTP request processing");
 
                 #[cfg(feature = "emit_event_on_error")]
                 {

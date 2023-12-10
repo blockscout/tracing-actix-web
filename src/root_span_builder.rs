@@ -17,21 +17,13 @@ pub trait RootSpanBuilder {
 /// The default [`RootSpanBuilder`] for [`TracingLogger`].
 ///
 /// It captures:
-/// - HTTP method (`http.method`);
-/// - HTTP route (`http.route`), with templated parameters;
-/// - HTTP version (`http.flavor`);
-/// - HTTP host (`http.host`);
-/// - Client IP (`http.client_ip`);
-/// - User agent (`http.user_agent`);
-/// - Request path (`http.target`);
-/// - Status code (`http.status_code`);
+/// - HTTP method (`method`);
+/// - HTTP route (`endpoint`), with templated parameters;
+/// - Client IP (`client_ip`);
+/// - Status code (`status`);
 /// - [Request id](crate::RequestId) (`request_id`);
 /// - `Display` (`exception.message`) and `Debug` (`exception.details`) representations of the error, if there was an error;
 /// - [Request id](crate::RequestId) (`request_id`);
-/// - [OpenTelemetry trace identifier](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/overview.md#spancontext) (`trace_id`). Empty if the feature is not enabled;
-/// - OpenTelemetry span kind, set to `server` (`otel.kind`).
-///
-/// All field names follow [OpenTelemetry's semantic convention](https://github.com/open-telemetry/opentelemetry-specification/tree/main/specification/trace/semantic_conventions).
 ///
 /// [`TracingLogger`]: crate::TracingLogger
 pub struct DefaultRootSpanBuilder;
@@ -49,8 +41,7 @@ impl RootSpanBuilder for DefaultRootSpanBuilder {
                     handle_error(span, response.status(), error.as_response_error());
                 } else {
                     let code: i32 = response.response().status().as_u16().into();
-                    span.record("http.status_code", code);
-                    span.record("otel.status_code", "OK");
+                    span.record("status", code);
                 }
             }
             Err(error) => {
@@ -69,11 +60,5 @@ fn handle_error(span: Span, status_code: StatusCode, response_error: &dyn Respon
     span.record("exception.details", &tracing::field::display(debug));
     let code: i32 = status_code.as_u16().into();
 
-    span.record("http.status_code", code);
-
-    if status_code.is_client_error() {
-        span.record("otel.status_code", "OK");
-    } else {
-        span.record("otel.status_code", "ERROR");
-    }
+    span.record("status", code);
 }

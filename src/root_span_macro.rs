@@ -76,11 +76,6 @@ macro_rules! root_span {
     // One or more additional fields, comma separated
     (level = $lvl:expr, $request:ident, $($field:tt)*) => {
         {
-            let user_agent = $request
-                .headers()
-                .get("User-Agent")
-                .map(|h| h.to_str().unwrap_or(""))
-                .unwrap_or("");
             let http_route: std::borrow::Cow<'static, str> = $request
                 .match_pattern()
                 .map(Into::into)
@@ -94,22 +89,14 @@ macro_rules! root_span {
                     $crate::root_span_macro::private::tracing::span!(
                         $level,
                         "HTTP request",
-                        http.method = %http_method,
-                        http.route = %http_route,
-                        http.flavor = %$crate::root_span_macro::private::http_flavor($request.version()),
-                        http.scheme = %$crate::root_span_macro::private::http_scheme(connection_info.scheme()),
-                        http.host = %connection_info.host(),
-                        http.client_ip = %$request.connection_info().realip_remote_addr().unwrap_or(""),
-                        http.user_agent = %user_agent,
-                        http.target = %$request.uri().path_and_query().map(|p| p.as_str()).unwrap_or(""),
-                        http.status_code = $crate::root_span_macro::private::tracing::field::Empty,
-                        otel.name = %format!("HTTP {} {}", http_method, http_route),
-                        otel.kind = "server",
-                        otel.status_code = $crate::root_span_macro::private::tracing::field::Empty,
-                        trace_id = $crate::root_span_macro::private::tracing::field::Empty,
+                        method = %http_method,
+                        endpoint = %http_route,
+                        client_ip = %$request.connection_info().realip_remote_addr().unwrap_or(""),
                         request_id = %request_id,
+                        status = $crate::root_span_macro::private::tracing::field::Empty,
+                        duration = $crate::root_span_macro::private::tracing::field::Empty,
+                        unit = $crate::root_span_macro::private::tracing::field::Empty,
                         exception.message = $crate::root_span_macro::private::tracing::field::Empty,
-                        // Not proper OpenTelemetry, but their terminology is fairly exception-centric
                         exception.details = $crate::root_span_macro::private::tracing::field::Empty,
                         $($field)*
                     )
@@ -123,13 +110,6 @@ macro_rules! root_span {
                 $crate::Level::ERROR => inner_span!($crate::Level::ERROR),
             };
             std::mem::drop(connection_info);
-
-            // Previously, this line was instrumented with an opentelemetry-specific feature
-            // flag check. However, this resulted in the feature flags being resolved in the crate
-            // which called `root_span!` as opposed to being resolved by this crate as expected.
-            // Therefore, this function simply wraps an internal function with the feature flags
-            // to ensure that the flags are resolved against this crate.
-            $crate::root_span_macro::private::set_otel_parent(&$request, &span);
 
             span
         }
