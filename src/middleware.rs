@@ -124,6 +124,8 @@ where
     }
 }
 
+pub struct SkipHttpTrace;
+
 #[doc(hidden)]
 pub struct TracingLoggerMiddleware<S, RootSpanBuilder> {
     service: S,
@@ -151,14 +153,19 @@ where
         let root_span_wrapper = RootSpan::new(root_span.clone());
         req.extensions_mut().insert(root_span_wrapper);
 
+        let skip_http_trace = req.extensions().contains::<SkipHttpTrace>();
+
         let fut = root_span.in_scope(|| {
-            tracing::info!("Started HTTP request processing");
+            if !skip_http_trace {
+                tracing::info!("Started HTTP request processing");
+            }
             self.service.call(req)
         });
 
         TracingResponse {
             fut,
             span: root_span,
+            skip_http_trace,
             _root_span_type: std::marker::PhantomData,
         }
     }
@@ -170,6 +177,7 @@ pub struct TracingResponse<F, RootSpanType> {
     #[pin]
     fut: F,
     span: Span,
+    skip_http_trace: bool,
     _root_span_type: std::marker::PhantomData<RootSpanType>,
 }
 
@@ -194,13 +202,16 @@ where
 
         let fut = this.fut;
         let span = this.span;
+        let skip_http_trace = *this.skip_http_trace;
 
         span.in_scope(|| match fut.poll(cx) {
             Poll::Pending => Poll::Pending,
             Poll::Ready(outcome) => {
                 RootSpanType::on_request_end(Span::current(), &outcome);
 
-                tracing::info!("Finished HTTP request processing");
+                if !skip_http_trace {
+                    tracing::info!("Finished HTTP request processing");
+                }
 
                 #[cfg(feature = "emit_event_on_error")]
                 {
