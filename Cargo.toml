@@ -2,18 +2,17 @@
 members = [".", "examples/opentelemetry", "examples/custom-root-span", "examples/request-id-response-header"]
 
 [package]
-name = "tracing-actix-web"
-version = "0.8.0-blockscout.1"
-authors = ["Luca Palmieri <rust@lpalmieri.com>"]
+name = "blockscout-tracing-actix-web"
+version = "0.8.0"
 edition = "2018"
 
 license = "MIT/Apache-2.0"
 
-repository = "https://github.com/LukeMathWalker/tracing-actix-web"
+repository = "https://github.com/blockscout/tracing-actix-web"
 documentation = "https://docs.rs/tracing-actix-web/"
 readme = "README.md"
 
-description = "Structured logging middleware for actix-web."
+description = "The fork of tracing-actix-web with changes specific to Blockscout rust services."
 
 keywords = ["http", "actix-web", "tracing", "logging"]
 categories = ["asynchronous", "web-programming"]
